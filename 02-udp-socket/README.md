@@ -1,4 +1,4 @@
-# 01 - Linux Networking Intro
+# 02 - Linux Networking Intro
 
 First networking project: a UDP client and server running on the same machine over the loopback address `127.0.0.1`.
 
