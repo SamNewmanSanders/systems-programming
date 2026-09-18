@@ -1,0 +1,12 @@
+This is a test text file. It is full of things like
+	indentation,
+CAPITAL LETTERS AND PUNCTUAT!0N%*£&"^£&*$
+
+
+123456789
+
+Sam Newman-Sanders is the best.
+
+This second section gives the program more input to copy. It includes spaces,
+new lines, punctuation, numbers such as 9876543210, and mixed CASE letters.
+The important test is that every character appears in the output unchanged.

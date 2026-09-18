@@ -1,0 +1,15 @@
+# C++ build artifacts
+*.o
+*.out
+*.exe
+*.obj
+01-cat-clone/samns-cat
+01-cat-clone/cat-clone
+
+# Local test output
+output.txt
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
