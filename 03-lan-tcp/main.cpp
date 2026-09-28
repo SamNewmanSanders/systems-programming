@@ -1,4 +1,5 @@
-#include <string>
+#include <chrono>
+#include <cstdint>
 #include <iostream>
 #include <random>
 #include <string>
@@ -19,28 +20,40 @@ std::uint64_t generate_peer_id()
 
 int main()
 {
-
+    // Always use port 9001 - hopefully is free! (Otherwise systemcall error)
     const std::uint16_t discovery_port = 9001;
     const std::uint64_t peer_id = generate_peer_id();
 
     UdpSocket socket(discovery_port);
 
-    while (!peer_found)
-    {
-        socket.send_broadcast(
-            "LAN_PEER_DISCOVERY " + std::to_string(peer_id)
-        );
+    const std::string discovery_message =
+        "SAMNS_LAN_PEER_DISCOVERY " + std::to_string(peer_id);
 
-        auto received = socket.receive();
+    // Constexpr is stronger than const - it is constant and KNOWN at COMPILE TIME
+    constexpr auto broadcast_interval = std::chrono::seconds(1);
+    // Make the first broadcast happen immediately
+    auto next_broadcast = std::chrono::steady_clock::now();
+
+    while (true)
+    {
+        const auto now = std::chrono::steady_clock::now();
+        if (now >= next_broadcast)
+        {
+            socket.send_broadcast(discovery_message);
+            next_broadcast = now + broadcast_interval;
+        }
+
+        const auto wait_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+            next_broadcast - std::chrono::steady_clock::now());
+        const auto received = socket.receive_for(wait_time);
 
         if (received)
         {
-            // inspect the other peer
+            std::cout << "Datagram from " << received->sender_ip << ':'
+                      << received->sender_port << ": " << received->message
+                      << '\n';
         }
-
-        sleep briefly;
     }
-
 
     return 0;
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <optional>
@@ -15,7 +16,7 @@ class UdpSocket
 {
 public:
 
-    // Explicit constructor to avoid accidental type conversion
+    // Prevent implicit conversion from int
     explicit UdpSocket(std::uint16_t port);
     ~UdpSocket();
 
@@ -29,10 +30,13 @@ public:
     );
 
     std::optional<ReceivedDatagram> receive();
+    std::optional<ReceivedDatagram> receive_for(
+        std::chrono::milliseconds timeout
+    );
 
    
 private:
     std::uint16_t port;
-    std::intptr_t socket_handle;
-
+    std::intptr_t socket_handle; // Refers to either the linux file descriptor or Windows equivalent
+    // intptr_t conveys that the integer is intended to contain a pointer
 };

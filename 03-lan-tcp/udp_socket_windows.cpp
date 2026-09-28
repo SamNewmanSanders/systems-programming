@@ -2,6 +2,8 @@
 
 #include "udp_socket.hpp"
 
+#include <algorithm>
+#include <limits>
 #include <stdexcept>
 
 // Import platform specific libraries
@@ -123,6 +125,53 @@ std::optional<ReceivedDatagram> UdpSocket::receive()
 		sender_ip,
 		ntohs(sender.sin_port)
 	};
+}
+
+std::optional<ReceivedDatagram> UdpSocket::receive_for(
+	std::chrono::milliseconds timeout)
+{
+	const NativeSocket native_socket =
+		static_cast<NativeSocket>(socket_handle);
+	const auto timeout_ms = std::max<std::chrono::milliseconds::rep>(
+		timeout.count(),
+		0);
+	const auto timeout_seconds = timeout_ms / 1000;
+	const auto max_seconds =
+		static_cast<std::chrono::milliseconds::rep>(
+			std::numeric_limits<long>::max());
+
+	timeval timeout_value{};
+	if (timeout_seconds > max_seconds)
+	{
+		timeout_value.tv_sec = std::numeric_limits<long>::max();
+		timeout_value.tv_usec = 999999;
+	}
+	else
+	{
+		timeout_value.tv_sec = static_cast<long>(timeout_seconds);
+		timeout_value.tv_usec = static_cast<long>((timeout_ms % 1000) * 1000);
+	}
+
+	fd_set readable_sockets;
+	FD_ZERO(&readable_sockets);
+	FD_SET(native_socket, &readable_sockets);
+
+	const int result = select(
+		0,
+		&readable_sockets,
+		nullptr,
+		nullptr,
+		&timeout_value);
+	if (result == 0)
+	{
+		return std::nullopt;
+	}
+	if (result == SOCKET_ERROR)
+	{
+		throw std::runtime_error("select failed");
+	}
+
+	return receive();
 }
 
 UdpSocket::~UdpSocket()

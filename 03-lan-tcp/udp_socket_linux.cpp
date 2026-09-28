@@ -4,11 +4,10 @@
 
 // Linux socket APIs
 #include <arpa/inet.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
-// Linux represents sockets as integer file descriptors.
-using NativeSocket = int;
 
 UdpSocket::UdpSocket(std::uint16_t port)
 	// Start with an invalid handle so the object has a known initial state.
@@ -16,7 +15,7 @@ UdpSocket::UdpSocket(std::uint16_t port)
 	, socket_handle(-1)
 {
 	// Create an IPv4 UDP socket.
-	const NativeSocket native_socket = socket(AF_INET, SOCK_DGRAM, 0);
+	const int native_socket = socket(AF_INET, SOCK_DGRAM, 0);
 	if (native_socket < 0)
 	{
 		throw std::runtime_error("socket creation failed");
@@ -27,14 +26,16 @@ UdpSocket::UdpSocket(std::uint16_t port)
 
 	// Allow this socket to send datagrams to a broadcast address.
 	int broadcast_enabled = 1;
+	// Use the generic socket configuration syscall
 	if (setsockopt(
-			native_socket,
-			SOL_SOCKET,
-			SO_BROADCAST,
-			&broadcast_enabled,
-			sizeof(broadcast_enabled)) < 0)
+			socket_handle,
+			SOL_SOCKET, 		// General socket-level option (could be IPv4 specific, etc)
+			SO_BROADCAST,		// The actual option name
+			&broadcast_enabled,	// Option value
+			sizeof(broadcast_enabled)) < 0)	// Size of option_value
 	{
-		close(native_socket);
+		perror("setsockopt");
+		close(socket_handle);
 		throw std::runtime_error("setsockopt failed");
 	}
 
@@ -45,26 +46,23 @@ UdpSocket::UdpSocket(std::uint16_t port)
 	address.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	if (bind(
-			native_socket,
+			socket_handle,
 			reinterpret_cast<sockaddr*>(&address),
 			sizeof(address)) < 0)
 	{
 		// Release the socket because construction cannot continue.
-		close(native_socket);
+		perror("bind socket");
+		close(socket_handle);
 		throw std::runtime_error("bind failed");
 	}
 }
 
 UdpSocket::~UdpSocket()
 {
-	// Convert the shared storage back to Linux's native descriptor type.
-	const NativeSocket native_socket =
-		static_cast<NativeSocket>(socket_handle);
-
-	if (native_socket >= 0)
+	if (socket_handle >= 0)
 	{
 		// Release the kernel socket when the C++ object is destroyed.
-		close(native_socket);
+		close(socket_handle);
 	}
 }
 
@@ -77,6 +75,7 @@ void UdpSocket::send_broadcast(const std::string& message)
     destination.sin_port = htons(port);
     inet_pton(AF_INET, "255.255.255.255", &destination.sin_addr);
 	
+	// Signed size_t as can return negative
 	const ssize_t bytes_sent = sendto(
         socket_handle,
         message.data(),
@@ -88,7 +87,8 @@ void UdpSocket::send_broadcast(const std::string& message)
 
 	if (bytes_sent < 0)
 	{
-		throw std::runtime_error("sendto failed");
+		perror("Send broadcast");
+		throw std::runtime_error("send broadcast failed");
 	}
 }
 
@@ -100,7 +100,7 @@ std::optional<ReceivedDatagram> UdpSocket::receive()
 
 	// Wait for one UDP datagram and record the sender's address.
 	const ssize_t bytes_received = recvfrom(
-		static_cast<NativeSocket>(socket_handle),
+		socket_handle,
 		buffer,
 		sizeof(buffer),
 		0,
@@ -110,6 +110,7 @@ std::optional<ReceivedDatagram> UdpSocket::receive()
 
 	if (bytes_received < 0)
 	{
+		perror("Receive datagram");
 		throw std::runtime_error("recvfrom failed");
 	}
 
@@ -127,7 +128,38 @@ std::optional<ReceivedDatagram> UdpSocket::receive()
 
 	return ReceivedDatagram{
 		std::string(buffer, bytes_received),
-		sender_ip,
-		ntohs(sender.sin_port)
+		sender_ip,								// Construct C++ string from C style string
+		ntohs(sender.sin_port)					// CONvert port from network to machine byte order
 	};
+}
+
+std::optional<ReceivedDatagram> UdpSocket::receive_for(
+	std::chrono::milliseconds timeout)
+{
+	const int timeout_ms = static_cast<int>(timeout.count());
+
+	pollfd socket_readable{};
+	socket_readable.fd = static_cast<int>(socket_handle);
+	socket_readable.events = POLLIN;
+
+	const int result = poll(&socket_readable, 1, static_cast<int>(timeout_ms));
+	if (result == 0)
+	{
+		return std::nullopt;
+	}
+	if (result < 0)
+	{
+		perror("poll");
+		throw std::runtime_error("poll failed");
+	}
+
+	// revents is a bitmask of events that actually occurred; & POLLIN checks
+	// whether the "data available to read" flag is set. The flags are not the
+	// packet data itself — poll() only reports that data is ready for recvfrom().
+	if ((socket_readable.revents & POLLIN) == 0)
+	{
+		throw std::runtime_error("socket became ready without a datagram");
+	}
+
+	return receive();
 }
