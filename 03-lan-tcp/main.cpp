@@ -13,7 +13,7 @@ int main()
     // Constexpr is stronger than const - it is constant and KNOWN at COMPILE TIME
     constexpr auto broadcastInterval = std::chrono::milliseconds(1000);
 
-    const std::string broadcastMessageText = "SAMNS_LAN_PEER_DISCOVER";
+    const std::string broadcastMessageText = "SAMNS_LAN_PEER_DISCOVERY_";
 
     PeerDiscoverer peerDiscoverer(discoveryPort, broadcastMessageText, broadcastInterval);
 
