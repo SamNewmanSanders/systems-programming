@@ -4,6 +4,7 @@
 *.exe
 *.obj
 **/build/
+**/build-*/
 01-cat-clone/samns-cat
 01-cat-clone/cat-clone
 

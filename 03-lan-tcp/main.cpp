@@ -48,7 +48,13 @@ int main()
         const auto received = socket.receive_for(wait_time);
 
         if (received)
-        {
+        {   
+            // Stop self detection (if peer ID matches)
+            if (received->message == discovery_message)
+            {
+                continue;
+            }
+            
             std::cout << "Datagram from " << received->sender_ip << ':'
                       << received->sender_port << ": " << received->message
                       << '\n';
