@@ -9,14 +9,15 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Compile only the socket implementation for the current operating system.
 # Both files define UdpSocket, so compiling both would cause duplicate symbols.
 if (WIN32)
-	set(UDP_SOCKET_SOURCE udp_socket_windows.cpp)
+	set(UDP_SOCKET_SOURCE udpSocketWindows.cpp)
 else()
-	set(UDP_SOCKET_SOURCE udp_socket_linux.cpp)
+	set(UDP_SOCKET_SOURCE udpSocketLinux.cpp)
 endif()
 
 add_executable(main
 	main.cpp
 	${UDP_SOCKET_SOURCE}
+	peerDiscovery.cpp
 )
 
 # Winsock is a separate Windows networking library. Linux provides these

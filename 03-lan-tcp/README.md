@@ -17,7 +17,7 @@ These addresses share a prefix, but the subnet mask determines whether they are 
 
 ## What I am learning
 
-- **OS-specific code behind one interface:** `udp_socket.hpp` declares the `UdpSocket` API used by `main.cpp`. CMake selects either `udp_socket_linux.cpp` or `udp_socket_windows.cpp`, since each implements the same class using a different operating-system socket API.
+- **OS-specific code behind one interface:** `udpSocket.hpp` declares the `UdpSocket` API used by `main.cpp`. CMake selects either `udpSocketLinux.cpp` or `udpSocketWindows.cpp`, since each implements the same class using a different operating-system socket API.
 - **Linux implementation:** I understand the Linux implementation, including its socket calls and error paths. The Windows implementation was AI-generated and has not been studied or verified to the same level.
 - **Polling instead of waiting indefinitely:** Linux `poll()` waits for socket readiness up to a timeout. The program can therefore wait for an incoming datagram while still waking in time to send its next periodic broadcast. `poll()` reports readiness; `recvfrom()` then receives the datagram. This avoids calling a blocking receive and getting stuck there instead of continuing the loop. The Windows implementation provides the same behavior.
 - **Readiness flags:** `POLLIN` asks for readable data, and `revents` reports which events actually occurred. A readiness notification is not the packet itself; the receive call obtains the data.
