@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     if (argc > 1 && std::string(argv[1]) == "--help")
     {
         std::cout << "Usage: " << argv[0] << " [FILE]...\n"
-                  << "Copy FILE(s) to int inputFd)standard output.\n"
+                  << "Copy FILE(s) to int inputFd standard output.\n"
                   << "With no FILE, read from standard input.\n"
                   << "Use '-' to read standard input at that position.\n";
         return 0;
