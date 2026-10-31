@@ -9,9 +9,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Compile only the socket implementation for the current operating system.
 # Both files define UdpSocket, so compiling both would cause duplicate symbols.
 if (WIN32)
-	set(UDP_SOCKET_SOURCE udpSocketWindows.cpp)
+	set(UDP_SOCKET_SOURCE sockets/udpSocketWindows.cpp)
 else()
-	set(UDP_SOCKET_SOURCE udpSocketLinux.cpp)
+	set(UDP_SOCKET_SOURCE sockets/udpSocketLinux.cpp)
 endif()
 
 add_executable(main

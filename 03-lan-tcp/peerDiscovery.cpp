@@ -43,10 +43,42 @@ void PeerDiscoverer::discoverPeers()
                 continue;
             }
             
+            // If we have received a message, lets handle it and update state
             std::cout << "Datagram from " << received->sender_ip << ':'
                     << received->sender_port << ": " << received->message
                     << '\n';
+            
+            // Check that the received datagram is actually from our program
+            if (received->message.rfind(broadcastMessageText, 0) != 0)
+            {
+                continue;
+            }
+            
 
+            // Extract the peer ID
+            const auto prefixLength = broadcastMessageText.size();
+            const auto underscore = received->message.find('_', prefixLength);
+
+            if (underscore == std::string::npos)
+            {
+                continue;
+            }
+            
+            // String to unsinged long long
+            const std::uint64_t otherPeerID = std::stoull(
+                received->message.substr(prefixLength, underscore - prefixLength)
+            );
+
+            // If we have the higher peerID, we are the server
+            role = peerID > otherPeerID ? Role::SERVER : Role::CLIENT;
+
+            // Populate information about the peer we have found
+            peer.id = otherPeerID;
+            peer.ipAddress = received->sender_ip;
+
+            break;
         }
     }
+
+    return;
 }
