@@ -2,6 +2,8 @@
 
 A rewrite of the earlier attempt (kept in `03-lan-tcp-old` for reference). Each laptop running the program finds the others on the LAN with UDP broadcast, then connects to them over TCP to exchange messages. Linux only for now.
 
+> **Status: paused.** UDP discovery on the `poll()` event loop works. I am bored of this project for now and feel I won't learn that much more from the TCP implementation, so I am stopping here. I may come back to it in the future.
+
 ## Design
 
 - **One thread, one event loop.** Instead of a thread per socket, a single `poll()` call waits on every file descriptor at once (the UDP socket now; the TCP listener, connections and stdin later). `poll()` reports which descriptors are ready, and only those are read.

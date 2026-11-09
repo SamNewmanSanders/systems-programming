@@ -68,7 +68,7 @@ int main()
             next_beacon - steady_clock::now());
         const int timeout_ms = std::max(0, static_cast<int>(wait.count()));
 
-        // Use the poll system call
+        // Use the poll system call. Ready returns the number of "interesting things"
         int ready = poll(fds.data(), fds.size(), timeout_ms);
 
         if (ready == -1)
@@ -78,7 +78,10 @@ int main()
 		    throw std::runtime_error("poll failed");
         }
 
-        // Probe revents with a bitmask (fds[0] is UDP)
+        // Probe revents with a bitmask (fds[0] is UDP). A successful poll() overwrites
+        // every revents (0 on timeout), so no manual reset is needed and ready > 0 is
+        // redundant. On -1 revents may be stale, which is why that check comes first.
+    
         else if (ready > 0 && (fds[0].revents & POLLIN))
         {
             auto received = udp_socket.try_receive();
